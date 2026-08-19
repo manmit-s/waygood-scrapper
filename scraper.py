@@ -1,5 +1,6 @@
 """Waygood university/course scraping pipeline -> official JSON schema."""
 
+import csv
 import json
 import re
 import datetime
@@ -251,6 +252,37 @@ def scrape_course(url):
     }
 
 
+def _flatten_value(value):
+    if isinstance(value, dict):
+        if not value:
+            return ""
+        currency = value.get("currency")
+        amount = value.get("amount")
+        if currency is not None and amount is not None:
+            return f"{currency} {amount}"
+        return str(amount) if amount is not None else ""
+    if isinstance(value, list):
+        if not value:
+            return ""
+        parts = []
+        for item in value:
+            if isinstance(item, dict):
+                if "year" in item and "month" in item:
+                    months = item["month"]
+                    month_str = ", ".join(months) if isinstance(months, list) else str(months)
+                    parts.append(f"{item['year']}: {month_str}")
+                else:
+                    parts.append("; ".join(f"{k}={v}" for k, v in item.items()))
+            else:
+                parts.append(str(item))
+        return " | ".join(parts)
+    return "" if value is None else value
+
+
+def _course_to_row(course):
+    return {key: _flatten_value(value) for key, value in course.items()}
+
+
 def main():
     university_url = "https://www.birmingham.ac.uk/dubai/study"
     course_urls = [
@@ -266,7 +298,13 @@ def main():
     with open("courses.json", "w", encoding="utf-8") as fh:
         json.dump(course_records, fh, ensure_ascii=False, indent=2)
 
-    print("Wrote university.json and courses.json")
+    rows = [_course_to_row(course) for course in course_records]
+    with open("courses.csv", "w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+
+    print("Wrote university.json, courses.json and courses.csv")
 
 
 if __name__ == "__main__":
