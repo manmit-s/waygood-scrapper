@@ -8,6 +8,7 @@ study-abroad comparison platform.
 ```
 university.json     # 1 university record (official schema, 20 keys)
 courses.json        # 2 course records   (official schema, 24 keys each)
+courses.csv         # flattened course records for CSV reviewers
 scraper.py          # requests + BeautifulSoup pipeline
 judgment.md         # extraction judgment calls (null discipline)
 approach_note.md    # scaling & LLM-hallucination guardrails
@@ -18,7 +19,7 @@ README.md           # this file
 ## Setup & run
 ```bash
 pip install -r requirements.txt
-python scraper.py        # fetches targets and writes both JSON files
+python scraper.py        # fetches targets and writes university.json, courses.json and courses.csv
 ```
 
 ## Output schema
@@ -41,6 +42,13 @@ python scraper.py        # fetches targets and writes both JSON files
 `internationalApplicationDeadline`, `domesticApplicationDeadline`,
 `requiredDocuments` (`[]`), `careerOpportunities`, `acceptanceRate`,
 `sourceUrl`, `lastVerifiedDate`.
+
+### `courses.csv`
+A flattened, one-row-per-course export for CSV reviewers. Nested objects are
+collapsed to readable cells — `firstYearTuitionFees` → `"AED 155483"`,
+`totalTuitionFee` → `""` when null — and lists are joined, e.g.
+`intakeYears` → `"2026: September, January"`. One column per top-level key;
+`null` becomes an empty cell.
 
 ## Discipline rules (enforced)
 - **Null discipline:** any field absent from the source page is `null` (or the
